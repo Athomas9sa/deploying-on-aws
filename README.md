@@ -1,16 +1,14 @@
 # Deploying on AWS
 
-<details><summary> Authorship note</summary>
+## Authorship note
 
-The core of this document was originally written by [Margaret ONeill](https://github.com/MAOneill) and shared internally at [DigitalCrafts](https://www.digitalcrafts.com/) as a Google doc (see the [original version](https://docs.google.com/document/d/1R740WN3I0WJk5EW5ObDMe6U13ggU_UCq9gOqHuVu9gw/edit#)). What follows is largely a rewrite of that document using markdown in order to make needed modifications easier (e.g., use of issues and pull requests on GitHub), future changes faster to implement, etc. Additional pictures, descriptions, and explanations have also been added.
+* 2017: The original blog post was written by [Jennifer Johnson and published to Medium](https://medium.com/digitalcrafts/how-to-set-up-an-ec2-instance-with-github-node-js-and-postgresql-e363cb771826)
+* July 2019: Jennifer's blog post was updated by [Margaret O'Neill](https://github.com/MAOneill) and shared internally at DigitalCrafts as a Google Doc (see the [original version](https://docs.google.com/document/d/1R740WN3I0WJk5EW5ObDMe6U13ggU_UCq9gOqHuVu9gw/edit#)).
+* November 2019: Daniel Farlow converted Margaret's document to markdown and published it as a [public repository on Github](https://github.com/daniel-farlow/deploying-on-aws)
+* October 2020: Sean Reid forked Daniel's repo to continue development on the document for current Digital Crafts' students.
 
-If you see something that needs fixing or something else that would be useful to add, then please consider submitting a pull request to this repo. 
 
----
-
-</details>
-
-<details><summary> Note about terminal examples</summary>
+<details><summary>Note about terminal examples</summary>
 
 Code samples intended to be run from terminal/Bash on your local machine are prefixed with `#BASH`:
 
@@ -30,41 +28,30 @@ ubuntu@ip-xxx-xx-xx-xx:~$ command-to-execute-in-ec2-terminal
 
 </details>
 
-<details><summary> Note about the new EC2 console </summary>
-
-As noted recently [on Reddit](https://www.reddit.com/r/aws/comments/dzitek/were_rolling_out_the_new_ec2_console_launch/) (November 21, 2019), AWS recently rolled out a new EC2 console. If you use this new console, then what you encounter and what you see in this guide will likely be somewhat different (only superficially). To ensure you see what is present in this guide (in terms of screenshots and the like), simply toggle the "New EC2 Experience" option in the top left corner of your console:
-
-<p align='center'>
-  <img  src='https://user-images.githubusercontent.com/52146855/69504573-0828fd80-0ef2-11ea-920a-cc06e8140143.png'>
-</p>
-
----
-
-</details>
 
 ## Contents
 
-- [Introduction](#introduction)  
-- [Create an AWS Account](#create-an-aws-account)  
-- [Pick Server Type](#pick-server-type)  
-- [Launch EC2 Instance](#launch-ec2-instance)  
-- [Edit Security Groups](#edit-security-groups)  
-- [Create an SSH Key](#create-an-ssh-key)  
-- [Connect the Instance](#connect-the-instance)  
-- [Create an Alias in Terminal/Bash for Quick Access to Your AWS EC2 Instance](#create-an-alias-in-terminalbash-for-quick-access-to-your-aws-ec2-instance)  
-- [Install Ubuntu's Advanced Packaging Tool (APT)](#install-ubuntus-advanced-packaging-tool-apt)  
-- [Install Nginx and Git on Your EC2 Instance](#install-nginx-and-git-on-your-ec2-instance)  
-- [Install Node, NVM, and NPM](#install-node-nvm-and-npm)  
-- [Create an SSH Key on GitHub to Connect AWS with Your GitHub Files](#create-an-ssh-key-on-github-to-connect-aws-with-your-github-files)  
-- [(Optional) Install PostgreSQL](#optional-install-postgresql)  
-- [(Optional) Install PM2](#optional-install-pm2)  
-- [(Optional) Point Your Domain Name to Your AWS IP Address](#optional-point-your-domain-name-to-your-aws-ip-address)  
-- [Tell Nginx about Our Server](#tell-nginx-about-our-server)  
+- [Introduction](#introduction)
+- [Create an AWS Account](#create-an-aws-account)
+- [Pick Server Type](#pick-server-type)
+- [Launch EC2 Instance](#launch-ec2-instance)
+- [Edit Security Groups](#edit-security-groups)
+- [Create an SSH Key](#create-an-ssh-key)
+- [Connect the Instance](#connect-the-instance)
+- [Create an Alias in Terminal/Bash for Quick Access to Your AWS EC2 Instance](#create-an-alias-in-terminalbash-for-quick-access-to-your-aws-ec2-instance)
+- [Install Ubuntu's Advanced Packaging Tool (APT)](#install-ubuntus-advanced-packaging-tool-apt)
+- [Install Nginx and Git on Your EC2 Instance](#install-nginx-and-git-on-your-ec2-instance)
+- [Install Node, NVM, and NPM](#install-node-nvm-and-npm)
+- [Create an SSH Key on GitHub to Connect AWS with Your GitHub Files](#create-an-ssh-key-on-github-to-connect-aws-with-your-github-files)
+- [(Optional) Install PostgreSQL](#optional-install-postgresql)
+- [(Optional) Install PM2](#optional-install-pm2)
+- [(Optional) Point Your Domain Name to Your AWS IP Address](#optional-point-your-domain-name-to-your-aws-ip-address)
+- [Tell Nginx about Our Server](#tell-nginx-about-our-server)
 - [Get a Certificate from Certbot](#get-a-certificate-from-certbot)
 
 ## Introduction
 
-This blog contains step-by-step instructions for setting up an [EC2 instance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html) on [Amazon Web Services](https://aws.amazon.com/) (AWS). It explains how to do the following: 
+This blog contains step-by-step instructions for setting up an [EC2 instance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html) on [Amazon Web Services](https://aws.amazon.com/) (AWS). It explains how to do the following:
 
 - Create an alias to quickly log in to your EC2 terminal.
 - Connect your EC2 instance to a GitHub repo.
@@ -79,13 +66,11 @@ There are also instructions for installing the following on your server instance
 Once everything described above has been set up, details will be provided to help you accomplish what you are ultimately interested in:
 
 - Point your personal domain name to your AWS IP address.
-- Set up subdomains. 
+- Set up subdomains.
 - Obtain a free [Certbot](https://certbot.eff.org/) certificate.
 - Publish your website on your domain for the world to see!
 
 This guide describes a very narrow path, specifically a path students at DigitalCrafts have followed in order to securely publish their projects for everyone to see. This guide does not attempt to explore the full range of AWS options--there are other guides for that. This guide is intended to be tightly focuesed and assumes you have terminal/[Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) on your personal computer. (Bash commands will be used for the bulk of the setup.) This process also uses GitHub to upload your files to AWS; hence, a general familiarity (and personal account) with Github is needed.
-
-Thanks are due to [Jennifer Johnson](https://medium.com/@jenlij) who wrote the [first post](https://medium.com/digitalcrafts/how-to-set-up-an-ec2-instance-with-github-node-js-and-postgresql-e363cb771826) on this subject in 2017. Margaret clarified and expanded Jennifer's process, and I have elaborated on Margaret's process. (Iterative work at its finest!) The true kudos go to [Chris Aquino](https://medium.com/@radishmouse) for being a great instructor and giving his students the knowledge to get where they are trying to go.
 
 ## Create an AWS Account
 
@@ -103,7 +88,7 @@ You will need a credit card. Choose the basic/free plan--we are selecting a free
   <img width="800" src="https://user-images.githubusercontent.com/52146855/69503679-3f93ac00-0eea-11ea-831c-058115ed1d1c.png">
 </p>
 
-If you only have one EC2 instance and no other services, then your plan should remain free for a year.  
+If you only have one EC2 instance and no other services, then your plan should remain free for a year.
 
 ## Pick Server Type
 
@@ -156,7 +141,7 @@ Select the "Free tier eligible" hardware choice or *instance type* (this will sp
 
 <details><summary> What is an Amazon EC2 instance type?</summary>
 
-From Amazon: 
+From Amazon:
 >Amazon EC2 provides a wide selection of instance types optimized to fit different use cases. Instances are virtual servers that can run applications. They have varying combinations of CPU, memory, storage, and networking capacity, and give you the flexibility to choose the appropriate mix of resources for your applications. [Learn more](https://aws.amazon.com/ec2/instance-types/) about instance types and how they can meet your computing needs.
 
 ---
@@ -184,7 +169,7 @@ No other configuration is necessary. Your security group configuration should no
 
 <details><summary> What is a security group?</summary>
 
-From Amazon: 
+From Amazon:
 >A security group is a set of firewall rules that control the traffic for your instance. On this page, you can add rules to allow specific traffic to reach your instance. For example, if you want to set up a web server and allow Internet traffic to reach your instance, add rules that allow unrestricted access to the HTTP and HTTPS ports. You can create a new security group or select from an existing one below. [Learn more](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-security-groups.html?icmpid=docs_ec2_console) about Amazon EC2 security groups.
 
 ---
@@ -208,7 +193,7 @@ Provide the popup seen above with a key name that makes sense (e.g., `myAwsEc2Ke
   <img width="400" src='https://user-images.githubusercontent.com/52146855/69110704-821c3b00-0a49-11ea-98d5-0096afa1f8d5.png'>
 </p>
 
-Then click the "Download Key Pair" button, then the "Launch Instances" button, and finally the "View Instances" button. 
+Then click the "Download Key Pair" button, then the "Launch Instances" button, and finally the "View Instances" button.
 
 The file downloaded should have file type `.pem`. (If your downloaded file is of any other type, then you may need to convert it or rename it, a process not covered in these instructions. See [AWS support](https://aws.amazon.com/premiumsupport/knowledge-center/convert-pem-file-into-ppk/) for more details and help.)
 
@@ -259,7 +244,7 @@ The [chmod calculator](https://chmodcommand.com/chmod-400/) explains this well: 
 
 ## Connect the Instance
 
-Return to the instance management panel of AWS in your browser. (If you ever need to navigate back to this panel, then note that it is accessible from the left navigation pane of the EC2 Dashboard under the "Instances" heading.) Navigate in the following manner from the top navbar in AWS: `Services -> EC2 -> Running Instances`. 
+Return to the instance management panel of AWS in your browser. (If you ever need to navigate back to this panel, then note that it is accessible from the left navigation pane of the EC2 Dashboard under the "Instances" heading.) Navigate in the following manner from the top navbar in AWS: `Services -> EC2 -> Running Instances`.
 
 <p align='center'>
   <img height="300" src='https://user-images.githubusercontent.com/52146855/69116340-10002200-0a5a-11ea-9dbe-a4fb1ec2973c.png'>
@@ -279,7 +264,7 @@ Open your `.bash_profile` using nano, VSCode, or the text editor of your choice:
 
 ``` BASH
 #BASH
-# Using nano 
+# Using nano
 nano ~/.bash_profile
 
 # Using VSCode
@@ -345,7 +330,7 @@ ubuntu@ip-172-31-20-54:~$ sudo apt update && sudo apt upgrade -y
 
 </details>
 
-The command above makes use of `sudo`, the "superuser do" command, which is used to install and upgrade packages. The `-y` flag is shorthand for "yes to all options" (i.e., do not ask for approval, just run the installations/updates). 
+The command above makes use of `sudo`, the "superuser do" command, which is used to install and upgrade packages. The `-y` flag is shorthand for "yes to all options" (i.e., do not ask for approval, just run the installations/updates).
 
 You may get the following pop-up (if so, select the option to keep the local version):
 
@@ -392,7 +377,7 @@ ubuntu@ip-172-31-20-54:~$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/
 ubuntu@ip-172-31-20-54:~$ source .bashrc
 ```
 
-Note that `source .bashrc` will be different if you are using Z Shell. 
+Note that `source .bashrc` will be different if you are using Z Shell.
 
 Now install the Long Term Support (LTS) version of Node:
 
@@ -405,11 +390,11 @@ ubuntu@ip-172-31-20-54:~$ nvm install --lts
 
 We will now create an SSH key on GitHub so that we can connect our AWS account with our GitHub files; that is, we will make it so that GitHub can communicate with our AWS EC2 instance. In order to do this, you need to have a GitHub account (or [sign up](https://github.com/) for one) and at least one repository that you want to deploy to AWS.
 
-Log in to your GitHub account, go to Settings, "SSH and GPG keys," and click the "New SSH key" button for generating SSH keys. 
+Log in to your GitHub account, go to Settings, "SSH and GPG keys," and click the "New SSH key" button for generating SSH keys.
 
 <p align='center'>
   <img height="400" style="margin-right: 20px;" src='https://user-images.githubusercontent.com/52146855/69194285-c1ed2c00-0af6-11ea-829e-ae8e5fe7500f.png'>
-  
+
   <img height="400" style="margin-right: 20px;" src='https://user-images.githubusercontent.com/52146855/69194410-12fd2000-0af7-11ea-87f4-b768c3715e8c.png'>
 
   <img height="150" src='https://user-images.githubusercontent.com/52146855/69194654-a0d90b00-0af7-11ea-9b12-8966575a9f95.png'>
@@ -419,7 +404,7 @@ Generate a new SSH key (in your EC2 terminal) using the following command (make 
 
 ``` BASH
 #EC2 terminal
-# Use the email associated with your GitHub account 
+# Use the email associated with your GitHub account
 ubuntu@ip-172-31-20-54:~$ ssh-keygen -t rsa -b 4096 -C "dan.farlow@gmail.com"
 ```
 
@@ -440,13 +425,13 @@ ubuntu@ip-172-31-20-54:~/.ssh$ cat id_rsa.pub
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCo4vbnWd7sC4eLxXuDeNJXJs7zKdq5dCp4YD866rs3KppdsuUb2zq3hLcL9hQiveh3i+hqLrYygaI+UXBCP9u6MVP+j7GN4Xp91ub/tGXO563K655HhoF0I2JCtCq8ZBBCUZh6lJ0J4xkEbbfGaxW4I8wbVKjG4o3AUyBeGRpKC7YbG+/ooUqCJ2vZ3zr3wmUDpnJ5pQhbItE1dFwXQ5k3A4RGlKlPbquLjqyoOv4k50LD/wCpz51q32hJSTVTu/gp4T+YPC4PedBA7BOYvbXDk2PoAqcSGswlsWp1zJaa081bVoLOwYMzT6jNmKfz+nSDN428FkenzN1AaowXa+DGVPRAXosiG9qyufxRldXVH1hJ60dIfbGydl2eUMm3fMYgw9VhBKQqtw3/4XvL5VKjvwNAtvQU1S1ir/MrXrp88nEoEJjRfEwjYF/5IVtA3VBMX50p6JL0jtz9zJ/2lVLsh/uE89bMnux2YP8Mo14SLIGT+gvfZXb5R8TR3Ug3wYjkv9RJWUj29yNlqDpRoQ57fBi4nLFVVt38MDLXRiM5seKEw5ksfGgaK3ZWFpkd/+CarbaE8zGd1ldVB/Kh3KD6tDRmsi+DS39aqOfeChIOsTVpBmQuLEFwIuELG7OmswzEUV4Jk48o6O/f2xuEur9mwVi36vSTlrQpSr1Ci0d8Aw== dan.farlow@gmail.com
 ```
 
-Copy *all* of the output text, go back to the GitHub page you left open in your browser (for adding an SSH key), enter a reasonable title for your key (e.g., `ec2-aws-instance-2019-11`), and then paste your copied text into the key field: 
+Copy *all* of the output text, go back to the GitHub page you left open in your browser (for adding an SSH key), enter a reasonable title for your key (e.g., `ec2-aws-instance-2019-11`), and then paste your copied text into the key field:
 
 <p align='center'>
   <img width="500" src='https://user-images.githubusercontent.com/52146855/69196927-e698d200-0afd-11ea-8a65-45165bbc4944.png'>
 </p>
 
-Click the "Add SSH key" button (you will likely be prompted to confirm your GitHub password to complete this step--confirm your password to continue). 
+Click the "Add SSH key" button (you will likely be prompted to confirm your GitHub password to complete this step--confirm your password to continue).
 
 Now you can test out your SSH key by navigating to the GitHub repo you want to copy and you can copy the clone link with the SSH parameters:
 
@@ -488,7 +473,7 @@ Additionally, [as noted](https://stackoverflow.com/a/52583808/5209533) by user S
 >
 >The latter option is usually more preferable.
 
-For the purposes of this guide, we will simply respond with 'yes.' 
+For the purposes of this guide, we will simply respond with 'yes.'
 
 ---
 
@@ -518,7 +503,7 @@ ubuntu@ip-172-31-20-54:~/aws-demo-project$ sudo service postgresql status
 
 # Change to the "postgres" user in order to modify postgresql
 ubuntu@ip-172-31-20-54:~/aws-demo-project$ sudo su - postgres
-postgres@ip-172-31-20-54:~$ 
+postgres@ip-172-31-20-54:~$
 ```
 
 You should now have a prompt that looks something like the following (as above): `postgres@ip-172-31-20-54:~$ `
@@ -579,7 +564,7 @@ ubuntu@ip-172-31-20-54:~$ sudo service postgresql restart
 
 **Note:** You can skip this step if your project does not have a backend or use Node.js to run.
 
-Intalling [PM2](https://pm2.io/) will allow you to run multiple applications on different ports of your web server. This is a process manager for Node.js. PM2 allows [Nginx](https://www.nginx.com/) to run Node.js programs in the background for us. 
+Intalling [PM2](https://pm2.io/) will allow you to run multiple applications on different ports of your web server. This is a process manager for Node.js. PM2 allows [Nginx](https://www.nginx.com/) to run Node.js programs in the background for us.
 
 Execute the following commands to install PM2:
 
@@ -603,9 +588,9 @@ You should get something that looks like the following:
   <img width="500" src='https://user-images.githubusercontent.com/52146855/69281209-ee1bb200-0bb5-11ea-9da9-c4b957e95295.png'>
 </p>
 
-Note from the above that you can use the `--name` flag to give your application a name. We will now generate a startup script. As the PM2 docs [note](https://pm2.keymetrics.io/docs/usage/quick-start/#setup-startup-script): 
+Note from the above that you can use the `--name` flag to give your application a name. We will now generate a startup script. As the PM2 docs [note](https://pm2.keymetrics.io/docs/usage/quick-start/#setup-startup-script):
 
-> Restarting PM2 with the processes you manage on server boot/reboot is critical. To solve this, just run this command to generate an active startup script: 
+> Restarting PM2 with the processes you manage on server boot/reboot is critical. To solve this, just run this command to generate an active startup script:
 > `pm2 startup`
 > And to freeze a process list for automatic respawn:
 > `pm2 save`
@@ -630,10 +615,10 @@ See the PM2 [quick start](https://pm2.keymetrics.io/docs/usage/quick-start/) gui
 
 ## (Optional) Point Your Domain Name to Your AWS IP Address
 
-**Note:** You must have a purchased domain name to do this step. You can buy one from [Namecheap](https://www.namecheap.com/), [GoDaddy](https://www.godaddy.com/), or a host (ha!) of other domain providers. If you do not have a domain name, then you can still view a *single* site on your EC2 instance by using the EC2-provided IP address. If, however, you want to set up subdomains, then a domain name is required. If you want to use HTTPS, which is strongly recommended and increasingly necessary, then you will need a certificate, and a domain name is required to use a certificate. 
+**Note:** You must have a purchased domain name to do this step. You can buy one from [Namecheap](https://www.namecheap.com/), [GoDaddy](https://www.godaddy.com/), or a host (ha!) of other domain providers. If you do not have a domain name, then you can still view a *single* site on your EC2 instance by using the EC2-provided IP address. If, however, you want to set up subdomains, then a domain name is required. If you want to use HTTPS, which is strongly recommended and increasingly necessary, then you will need a certificate, and a domain name is required to use a certificate.
 
 Copy the IP address of your EC2 instance by doing the following:
- 
+
  - Log in to your AWS account.
  - Visit your EC2 Dashboard.
  - Visit your running instances.
@@ -646,11 +631,11 @@ Copy the IP address of your EC2 instance by doing the following:
   <img width="600" src='https://user-images.githubusercontent.com/52146855/69291125-4069cc80-0bd0-11ea-9228-2bb5d1e1f56a.png'>
 </p>
 
-Now visit the domain provider site where you purchased your domain name. Each site is different, but you will want to manage your Domain Name Server (DNS) and create DNS records. We will create instances of the "A record." 
+Now visit the domain provider site where you purchased your domain name. Each site is different, but you will want to manage your Domain Name Server (DNS) and create DNS records. We will create instances of the "A record."
 
 <details><summary> what is a DNS "A record"?</summary>
 
-As noted by [NS1](https://ns1.com/resources/dns-records-explained): 
+As noted by [NS1](https://ns1.com/resources/dns-records-explained):
 
 > The most common DNS record used, the A record simply points a domain to an IPv4 address, such as `11.22.33.44`. To set up an A record on your domain all you’ll need is an IP address to point it to.
 >
@@ -714,7 +699,7 @@ You should follow one of three code examples given below depending on your use c
   }
   ```
 
-2. **Static site with custom domain name:** Same as above (i.e., static) but with a custom domain name. Provide the directory location of your site to be served and your custom domain name. 
+2. **Static site with custom domain name:** Same as above (i.e., static) but with a custom domain name. Provide the directory location of your site to be served and your custom domain name.
 
 For root domain (this could potentially be a good use case for your online portfolio):
 
@@ -787,7 +772,7 @@ If you do not get the `syntax is ok` and `test is successful` messages, then you
 
 ## Get a Certificate from Certbot
 
-Get a new certificate from Certbot. If you already have a certificate, then skip to the "updating certificates" section below. You only need to get a certificate once. 
+Get a new certificate from Certbot. If you already have a certificate, then skip to the "updating certificates" section below. You only need to get a certificate once.
 
 Visit the Certbot site and [select Nginx and Ubuntu 18.04 LTS (bionic)](https://certbot.eff.org/lets-encrypt/ubuntubionic-nginx):
 
